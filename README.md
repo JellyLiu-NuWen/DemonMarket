@@ -1,110 +1,49 @@
-# DemonMarket - No More Mounting Inflation [中文Wiki](https://github.com/Tining123/DemonMarket/blob/main/README_cn.md)
-![logo](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/logo.png)
+# DemonMarket
 
-#### A market plugin to prevent mounting inflation in minecraft servers. The optimized power index function and the inverse function are used to converge the selling price. It could solve the problem of server economic imbalance caused by the high production capacity of certain items in industrial type servers. In Summary, The richer the player is, the less profit the player receive.
-By using a convergence function based on the player's assets, items sold by the player will gradually depreciate. Items depreciate rapidly after reaching the specified baseline, and gradually decrease towards 0 but never reach 0. Using this method, players can begin to adapt to price convergence at the beginning of the entry and effectively curb the further expansion of server oligarch players' assets.
+这是我维护的 DemonMarket 分支，当前主要目标是修复高版本 Paper/Spigot 环境下的兼容性问题，而不是重复整理原项目的完整功能说明。
 
-#### To prevent player from trading money by others plugin, DemonMarket will disable every command except /mt pay.
-#### You could turn this off in config.yml.
+## 我修改了什么
 
-![GUI操作](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/gui_thumb2.gif)
-![Shop操作](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/adminshop-min.gif)
-![管理员Shop操作](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/shop-min.gif)
+### 修复 1.21.1 打开收购列表时报错
 
-## Usage
-#### Players could use /demonmarket or /mt
-+ /mt - Open the demon menu
-+ /mt gui - Open the acquire box
-+ /mt list - Show the acquire list
-+ /mt sell - Sell items in your hand
-+ /mt sell all - Sell items in your hand and the same things in your inventory
-+ /mt pay - Pay someone money
-+ /mt price - Check the price
-+ /mt help - Check helps
-+ /mt shop - Buy stuff from shop
-+ /mt market - Open the market
-+ /mt market sell [price] - Sell the item in hand to market
+在 Paper 1.21.1 上，旧版 `worth.yml` 中的部分材质名会触发类似下面的异常：
 
-Also ：dm, dmt, demonmarket
+```text
+java.lang.IllegalArgumentException: WATER isn't an item
+```
 
-#### Admins could use /demonmarketadmin or /mtadmin
-+ /mtadmin set [price] - Set price for the item
-+ /mtadmin nbtset [price] - Set price for the nbt item
-+ /mtadmin name - Check name info
-+ /mtadmin nbt - Check nbt info
-+ /mtadmin reload - Reload plugin
-+ /mtadmin shopset [price] - Set price for the item in the shop
-+ /mtadmin shopnbtset [price] - Set price for the nbt item in the shop
-+ /mtadmin shop - Shop management panel
-+ /mtadmin market - Market management panel
+这次修复的内容主要包括：
 
-Also ：dmadmin, dmtadmin, demonmarketadmin
+- 调整 `PluginUtil.getItem()` 的材质解析逻辑，避免把 `WATER`、`LAVA` 这类已经不是可直接创建 `ItemStack` 的材质继续当作物品使用
+- 为旧配置中的历史材质名增加兼容映射，例如 `WATER`、`STATIONARYWATER`、`LAVA`、`STATIONARYLAVA`
+- 增加回归测试，确保旧材质名在后续改动里不会再次导致 1.21.1 崩溃
 
-## Example
-Set diamond block with $440.
+## 当前适用场景
 
-![800资产效果](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/800_en.png)
-- You could receive $432 if you have only $800
+如果你正在使用这个 fork，主要是为了解决：
 
-![60w资产效果](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/60w_en.png)
-- You could receive $217 if you have $600000
+- Paper 1.21.1 启动或打开 GUI 时的物品兼容问题
+- 老版本配置文件迁移到新版本服务端后的材质解析报错
 
-![5000w资产效果](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/5000w_en.png)
-- You could receive $0.69 and even sold 64 diamond blocks if you have $50000000
+## 构建说明
 
+本地验证使用的是 `JDK 17`：
 
-## Permission
-+ demonmarket.use - Player need this permission node to use demonmarket
-+ If you are using Groupmanager, try /mangaddp builder demonmarket.use or /mangaddp default demonmarket.use
-+ If you are using luckperm, try /lp editor
-## config.yml
-+ lang: Set language manually.
-+ TaxRate: Tax rate.
-+ OP: The tax beneficiary. If you don't want to use it, just leave it blank.
-+ BasicProperty: The average balance of single player in mathematical expectation.
-+ Round: Enable and make the numbers approximate(shorter and easier to read)
-+ enable-demon-tax: Enable progressive tax rate, the most basic function of this plugin
-+ Fitler: For SlimeFun Plugin. Enable this option to block any items with lore being sold. Attention, this might cause the NBT support disable
-+ disable-pay: Enable this option to prevent user from paying others by using ess or others plugin.
-+ disable-pay-list: Set the paying command you want to block.
-+ disable-sell: Enable this option to prevent user from selling others by using ess or others plugin.
-+ disable-sell-list: Set the selling command you want to block.
-+ may-pay: Max amount of money can be transfer in a transaction.Set -1 to disable limitation, set 0 to disable pay command.
-+ pay-unit: Transfer unit. All transfer amount will be split as pay-unit to transfer. The tax will be calculated times.
-+ payer-tax: whether the payer pays the transfer tax (the tax payed by the receiver in default)
-+ auto-refresh: Enable to auto refresh the price in gui
-+ auto-refresh-gap: Refresh interval (second per time)
-+ disable-shop: Disable mt shop command.
-+ market.disable-market: disable mt market command.
-+ market.max-user-sell: Maximum number of user listings
-+ market.sell-tax-rate: Handling fee for players selling items, percentage
-+ market.diasble-demon-tax: disable demon tax in market profit
-+ log: enable transaction log
-## Mathematical Theory
-+ TAX=（1 - TaxRate）
+```bash
+mvn -q -Dtest=PluginUtilCompatibilityTest test
+mvn -q -DskipTests package
+```
 
-![实际最终公式](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/theory.png)
+产物默认在：
 
+```text
+target/DemonMarket-1.7.jar
+```
 
-### Set the price of diamond block is $440
-+ When the BasicProperty was set to 5000, the profit goes with players deposit like follow
+## 上游项目
 
-![5000基线](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/5kbasic.png)
-+ When the BasicProperty was set to 500000, the profit goes with players deposit like follow
+原作者项目地址：
 
-![50w基线](https://raw.githubusercontent.com/Tining123/DemonMarket/master/src/main/img/50wbasic.png)
+- [Tining123/DemonMarket](https://github.com/Tining123/DemonMarket)
 
-### You can also draw some charts like these by using my another tool, the [DemonCalculator](https://github.com/Tining123/DemonCalculator), so that you could decide the basic property setting.
-
-## Developing
-+ Acquire list [✓]
-+ GUI support [✓]
-+ NBT Support [✓]
-+ Use command to set price [✓]
-+ Check item name with command [✓]
-## About
-+ MIT lisence
-+ If you have any suggestion, complain or recommend function, don't be hesitated and contact me via GitHub or spigot.
-## Contact
-- Github: https://github.com/Tining123/DemonMarket
-- QQ: 1340212468
+如果你想查看插件原始介绍、功能说明、命令、配置项和历史文档，请直接参考原作者仓库。这个 fork 的 README 主要只记录我额外做过的修复和维护内容。
